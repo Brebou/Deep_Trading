@@ -37,6 +37,9 @@ best_indices = [
     "EEM",        # iShares MSCI Emerging Markets ETF (Marchés émergents globaux)
     "^GSPTSE",    # S&P TSX Composite (Canada)
 ]
+n_stocks = len(best_indices)
+
+print('Number of stocks :', n_stocks)
 
 # Télécharger toutes les données d'abord
 all_data = {}
@@ -89,4 +92,22 @@ save_adress = './data/stocks.csv'
 
 res.to_csv(save_adress, index = False)
 
+# Computation of the growth
+df = pd.read_csv(save_adress)
+
+# Removing zero-columns and computing growth
+df.drop(columns = ['Capital Gains', 'Dividends', 'Stock Splits'], inplace = True)
+for i in range(1, n_stocks):
+    df.drop(columns = [f'Dividends.{i}', f'Stock Splits.{i}'], inplace = True)
+    df[f'Growth.{i}'] = df[f'Close.{i}'].pct_change()
+
+# Computing growth of close price
+df['Growth'] = df['Close'].pct_change()
+for i in range(1, n_stocks):
+    df[f'Growth.{i}'] = df[f'Close.{i}'].pct_change()
+
+# Removing NaN value
+df = df.fillna(0)
+
+df.to_csv(save_adress, index = False)
 
