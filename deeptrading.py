@@ -51,6 +51,9 @@ path_model_classif = os.path.join(out_dir, "model_classif.pth")
 path_config = os.path.join(out_dir, "config.json")
 path_logs = os.path.join(out_dir, "logs.json")
 
+with open(path_config, 'w') as f:
+    json.dump(dict(args), f)
+    f.write('\n')
 
 # Hyper parameters
 dataset_path = 'data/stocks.csv'
