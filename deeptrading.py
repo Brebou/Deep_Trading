@@ -52,7 +52,7 @@ path_config = os.path.join(out_dir, "config.json")
 path_logs = os.path.join(out_dir, "logs.json")
 
 with open(path_config, 'w') as f:
-    json.dump(dict(args), f)
+    json.dump(vars(args), f)
     f.write('\n')
 
 # Hyper parameters
