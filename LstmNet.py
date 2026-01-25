@@ -28,3 +28,22 @@ class LSTMNet(nn.Module):
         x = nn.functional.relu(x)
         x = self.linear2(x)
         return x, (hn, cn)
+
+
+class Classifier(nn.Module):
+    def __init__(self, lstm, out_size):
+        super(Classifier, self).__init__()
+        
+        self.lstm = lstm
+        self.num_layers = lstm.num_layers
+        self.input_size = lstm.input_size
+        self.hidden_size = lstm.hidden_size
+        self.acti = nn.ReLU()
+        self.linear = nn.Linear(lstm.input_size, out_size)
+
+    def forward(self, x, last = None):
+        # x.shape = batch_size, sequence_length, embedding size
+        x, (hn, cn) = self.lstm(x, last)
+        x = self.acti(x)
+        x = self.linear(x)
+        return x, (hn, cn)
