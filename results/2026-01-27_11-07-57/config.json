@@ -1,0 +1,1 @@
+{"dataset_path": "data/stocks_conv.csv", "model_path": "", "lr": 0.0002, "batch_size": 8, "save_dir": "results", "nepochs": 100, "num_layers": 3, "hidden_dim": 128, "label_smoothing": 0.0, "classif_only": false}

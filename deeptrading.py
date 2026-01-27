@@ -56,7 +56,7 @@ with open(path_config, 'w') as f:
     f.write('\n')
 
 # Hyper parameters
-dataset_path = 'data/stocks.csv'
+dataset_path = args.dataset_path
 n_stocks = 26
 batch_size = args.batch_size
 hidden_dim = args.hidden_dim

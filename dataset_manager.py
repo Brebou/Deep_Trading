@@ -1,5 +1,28 @@
 import yfinance as yf
 import pandas as pd
+import numpy as np
+
+
+def conv(L, window_size):
+    res = []
+    for i in range(len(L)):
+        l = L[max(0, i-window_size//2): min(len(L),i+window_size//2 + 1)]
+        
+        res.append(np.mean(l))
+    return res
+
+
+def make_conv(df, window_size):
+    assert window_size % 2 == 1
+
+    res = []
+    n = len(df['Close'])
+    for column in df.columns:
+        if 'Growth' in column:
+            continue
+        res.append(pd.DataFrame(conv(df[column], window_size), columns = [column]))
+    res = pd.concat(res, axis = 1)
+    return res
 
 # Liste des 30 meilleurs indices boursiers pour le trading par IA
 best_indices = [
@@ -89,6 +112,7 @@ for i,index in enumerate(df_stock_cleaned.keys()):
 print(res.shape)
 print(set(res.columns))
 save_adress = './data/stocks.csv'
+save_adress_conv = './data/stocks_conv.csv'
 
 res.to_csv(save_adress, index = False)
 
@@ -97,17 +121,22 @@ df = pd.read_csv(save_adress)
 
 # Removing zero-columns and computing growth
 df.drop(columns = ['Capital Gains', 'Dividends', 'Stock Splits'], inplace = True)
+df[f'Growth'] = df[f'Close'].pct_change()
 for i in range(1, n_stocks):
     df.drop(columns = [f'Dividends.{i}', f'Stock Splits.{i}'], inplace = True)
     df[f'Growth.{i}'] = df[f'Close.{i}'].pct_change()
 
-# Computing growth of close price
-df['Growth'] = df['Close'].pct_change()
+
+res = make_conv(df, 5)
+res[f'Growth'] = res[f'Close'].pct_change()
 for i in range(1, n_stocks):
-    df[f'Growth.{i}'] = df[f'Close.{i}'].pct_change()
+    res[f'Growth.{i}'] = res[f'Close.{i}'].pct_change()
 
 # Removing NaN value
 df = df.fillna(0)
+res = res.fillna(0)
 
 df.to_csv(save_adress, index = False)
+res.to_csv(save_adress_conv, index = False)
+
 
