@@ -1,0 +1,1 @@
+{"dataset_path": "data/electricity.csv", "model_path": "", "lr": 0.0002, "batch_size": 8, "save_dir": "electricity", "nepochs": 10, "num_layers": 2, "hidden_dim": 64, "label_smoothing": 0.0}
