@@ -18,8 +18,7 @@ To run this project locally, follow these steps:
    git clone https://github.com/Brebou/Deep_Trading/tree/classification
    ```
 2. To train the model, run the following command
-```   
+   ```
    python3 deeptrading.py --dataset_path data/stocks.csv --lr 0.0002 --save_dir results --nepochs 10 --hidden_dim 128 --num_layers 2
-```
-
-
+   ```  
+3. To see the plots,  ```plot_prices.ipynb``` is a notebook to do so. A pre-trained model is available in the folder ```2026-01-12_22-54-06```.
