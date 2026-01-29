@@ -10,7 +10,7 @@ class Dataset(TensorDataset):
         self.target_tensor = target_tensor
 
     def __len__(self):
-        return len(self.data_tensor) - self.context_length
+        return len(self.data_tensor) - self.context_length - 1 
     
     def __getitem__(self, idx):
         x = self.data_tensor[idx:idx + self.context_length]

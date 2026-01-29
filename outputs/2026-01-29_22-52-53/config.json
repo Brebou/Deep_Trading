@@ -1,0 +1,1 @@
+{"dataset_path": "data/electricity.csv", "lr": 0.001, "batch_size": 64, "nepochs": 10, "hidden_dim": 64}
