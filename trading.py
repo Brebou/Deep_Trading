@@ -13,7 +13,8 @@ def trading_test(data_init,data,model_classifier,num_layers, hidden_dim,value_in
     l_indices_achats_naif = np.zeros(n_indices)
     l_argent_naif = []
     for i in range(n_jours-1):
-        best_index = np.argmax(value_data[i])
+        #best_index = np.argmax(value_data[i])
+        best_index = 1
         l_indices_achats_naif[best_index] += 10/value_data[i][best_index]
         if value_data is None:
             l_argent_naif.append(np.sum(l_indices_achats_naif*data[i+1]))
@@ -192,7 +193,7 @@ def trading_test_transformer(data_init, data, model_classifier, context_size, va
                 current_value = l_indices_achats_ML_balanced[j] * value_data[i][j]
                 desired_value = total_value / n_indices
                 difference = desired_value - current_value
-                l_indices_achats_ML_balanced[j] += (0.01 * difference) / value_data[i][j]
+                l_indices_achats_ML_balanced[j] += (0.8 * difference) / value_data[i][j]
             
             l_argent_ML_balanced.append(np.sum(l_indices_achats_ML_balanced * value_data[i + 1]))
     
