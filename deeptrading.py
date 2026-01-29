@@ -154,6 +154,7 @@ if not args.classif_only:
 	    path_model = path_model,
 	    batch_size = batch_size,
 	    device = device)
+	torch.save(model.state_dict(), path_model)
 
 print('-- Training part 2 --')
 train_model(model_classif,
@@ -170,5 +171,5 @@ train_model(model_classif,
 	device = device
 	)
 
-torch.save(model.state_dict(), path_model)
+torch.save(model_classif.state_dict(), path_model_classif)
 
