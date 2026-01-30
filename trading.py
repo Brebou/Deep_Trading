@@ -128,7 +128,16 @@ def trading_test_transformer(data_init, data, model_classifier, context_size, va
     
     n_jours = data.shape[0]
     n_indices = value_data.shape[1]
-    
+    # Stratégie économe : conserver l'argent initial
+    l_argent_conserve = np.arange(n_jours)*10
+    # Stratégie uniforme : acheter des fractions égales de chaque indice au départ
+    l_indices_achats_uniforme = np.zeros(n_indices)
+    l_argent_uniforme = []
+    for i in range(n_jours - 1):
+        for j in range(n_indices):
+            l_indices_achats_uniforme[j] += (10 / n_indices) / value_data[i][j]
+        l_argent_uniforme.append(np.sum(l_indices_achats_uniforme * value_data[i + 1]))
+
     # Stratégie naïve : on achète le plus gros indice chaque jour
     l_indices_achats_naif = np.zeros(n_indices)
     l_argent_naif = []
@@ -148,7 +157,7 @@ def trading_test_transformer(data_init, data, model_classifier, context_size, va
     # Stratégie ML : acheter selon le modèle
     l_indices_achats_ML = np.zeros(n_indices)
     l_argent_ML = []
-    
+    l_probas_ML = np.zeros((n_jours, n_indices))
     with torch.no_grad():
         for i in range(n_jours - 1):
             # Construire la séquence d'entrée
@@ -160,48 +169,53 @@ def trading_test_transformer(data_init, data, model_classifier, context_size, va
             
             inp = torch.tensor(inp, dtype=torch.float32, device=device).unsqueeze(0)  # [1, context_size, n_features]
             
-            output = model_classifier(inp)  # [1, context_size, n_classes]
+            output = model_classifier(inp)
+            probas = torch.softmax(output[0, -1], dim=-1).cpu().numpy()
+            l_probas_ML[i] = probas
             
             # Prédiction basée sur le dernier timestep
             predicted_index = torch.argmax(output[0, -1]).item()
             
             l_indices_achats_ML[predicted_index] += 10 / value_data[i][predicted_index]
             l_argent_ML.append(np.sum(l_indices_achats_ML * value_data[i + 1]))
-    
-    # Stratégie ML avec rebalancing
-    l_indices_achats_ML_balanced = np.zeros(n_indices)
-    l_argent_ML_balanced = []
-    
-    with torch.no_grad():
-        for i in range(n_jours - 1):
-            if i < context_size:
-                inp = np.concatenate((data_init[-(context_size - i):], data[:i]), axis=0)
-            else:
-                inp = data[i - context_size:i]
-            
-            inp = torch.tensor(inp, dtype=torch.float32, device=device).unsqueeze(0)
-            
-            output = model_classifier(inp)
-            predicted_index = torch.argmax(output[0, -1]).item()
-            
-            l_indices_achats_ML_balanced[predicted_index] += 10 / value_data[i][predicted_index]
-            
-            # Rebalancing
-            total_value = np.sum(l_indices_achats_ML_balanced * value_data[i])
-            for j in range(n_indices):
-                current_value = l_indices_achats_ML_balanced[j] * value_data[i][j]
-                desired_value = total_value / n_indices
-                difference = desired_value - current_value
-                l_indices_achats_ML_balanced[j] += (0.01 * difference) / value_data[i][j]
-            
-            l_argent_ML_balanced.append(np.sum(l_indices_achats_ML_balanced * value_data[i + 1]))
-    
-    # Plot
     plt.figure(figsize=(12, 6))
+    # Stratégie ML avec rebalancing usiant les probabilités pour k%
+    k_list = [0.1]
+    for k in k_list:
+        l_indices_achats_ML_balanced = np.zeros(n_indices)
+        l_argent_ML_balanced = []
+        with torch.no_grad():
+            for i in range(n_jours - 1):
+                predicted_index = np.argmax(l_probas_ML[i])
+                l_indices_achats_ML_balanced[predicted_index] += 10 / value_data[i][predicted_index]
+                # rebalancing 1% of the total portfolio every day by value
+                total_value = np.sum(l_indices_achats_ML_balanced * value_data[i])
+                for j in range(n_indices):
+                    current_value = l_indices_achats_ML_balanced[j] * value_data[i][j]
+                    desired_value = total_value / n_indices
+                    difference = desired_value - current_value
+                    l_indices_achats_ML_balanced[j] += (k * difference) / value_data[i][j]
+                l_argent_ML_balanced.append(np.sum(l_indices_achats_ML_balanced * value_data[i + 1]))
+        plt.plot(l_argent_ML_balanced, label=f'Stratégie ML Balanced k={k}')
+    # sampling k stratégies aléatoires sur les probas ML
+    """
+    k = 50
+    for j in range(k):
+        l_argent_random = []
+        l_indices_achats_random = np.zeros(n_indices)
+        for i in range(n_jours - 1):
+            #sampling according to probas 
+            index = np.random.choice(n_indices, p=  l_probas_ML[i]/np.sum(l_probas_ML[i]))
+            l_indices_achats_random[index] += 10 / value_data[i][index]
+            l_argent_random.append(np.sum(l_indices_achats_random * value_data[i + 1]))
+        plt.plot(l_argent_random, color='gray', alpha=0.3)
+    """
+    # Plot
     plt.plot(l_argent_naif, label='Stratégie Naïve')
+    plt.plot(l_argent_conserve, label='Stratégie Conserver')
+    plt.plot(l_argent_uniforme, label='Stratégie Uniforme')
     plt.plot(l_argent_reg, label='Stratégie Régresseur')
     plt.plot(l_argent_ML, label='Stratégie ML')
-    plt.plot(l_argent_ML_balanced, label='Stratégie ML Balanced')
     plt.xlabel('Jours')
     plt.ylabel('Argent accumulé')
     plt.title('Comparaison des stratégies de trading')
@@ -214,11 +228,11 @@ def trading_test_transformer_elec(data_init, data, model_classifier, context_siz
     '''
     device = next(model_classifier.parameters()).device
     model_classifier.eval()
+    
     n_jours = data.shape[0]
-    plt.figure(figsize=(12, 6))
+    
     somme_départ = 100
     l_probas_ML = np.zeros(n_jours)
-    print("ML")
     with torch.no_grad():
         for i in range(n_jours - 1):
             if i < context_size:
@@ -233,7 +247,6 @@ def trading_test_transformer_elec(data_init, data, model_classifier, context_siz
             
             l_probas_ML[i + 1] = probas[1]
 
-    print("Other")
     # Trading basé sur argmax des probabilités
     l_argent_ML = [somme_départ]
     argent_ML = somme_départ
@@ -303,14 +316,17 @@ def trading_test_transformer_elec(data_init, data, model_classifier, context_siz
             argent_pess += vente * value_data[i]
         l_argent_pess.append(argent_pess + l_elec_achats_pess * value_data[i])
     # Plot
+    plt.figure(figsize=(12, 6))
     plt.plot(l_argent_naif, label='Stratégie Naïve', color='blue')
     plt.plot(l_argent_reg, label='Stratégie Régresseur', color='green')
     plt.plot(l_argent_pess, label='Stratégie Pessimiste', color='red')
     plt.plot(l_argent_ML, label='Stratégie ML', color='orange')
     plt.xlabel('Jours')
     plt.ylabel('Argent accumulé')
-    plt.yscale("log")
-    
     plt.title('Comparaison des stratégies de trading sur données d\'électricité')
     plt.legend()
     plt.show()
+
+
+
+
