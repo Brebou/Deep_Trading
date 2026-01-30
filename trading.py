@@ -137,6 +137,15 @@ def trading_test_transformer(data_init, data, model_classifier, context_size, va
         for j in range(n_indices):
             l_indices_achats_uniforme[j] += (10 / n_indices) / value_data[i][j]
         l_argent_uniforme.append(np.sum(l_indices_achats_uniforme * value_data[i + 1]))
+    # Stratégie Uniforme Value : acheter des fractions égales de chaque indice pondérées par leur valeur au départ
+    l_indices_achats_uniforme_value = np.zeros(n_indices)
+    l_argent_uniforme_value = []
+    for i in range(n_jours - 1):
+        total_value = np.sum(value_data[i])
+        for j in range(n_indices):
+            proportion = value_data[i][j] / total_value
+            l_indices_achats_uniforme_value[j] += (10 * proportion) / value_data[i][j]
+        l_argent_uniforme_value.append(np.sum(l_indices_achats_uniforme_value * value_data[i + 1]))
 
     # Stratégie naïve : on achète le plus gros indice chaque jour
     l_indices_achats_naif = np.zeros(n_indices)
@@ -215,6 +224,7 @@ def trading_test_transformer(data_init, data, model_classifier, context_size, va
     plt.plot(l_argent_conserve, label='Stratégie Conserver')
     plt.plot(l_argent_uniforme, label='Stratégie Uniforme')
     plt.plot(l_argent_reg, label='Stratégie Régresseur')
+    plt.plot(l_argent_uniforme_value, label='Stratégie Uniforme Value')
     plt.plot(l_argent_ML, label='Stratégie ML')
     plt.xlabel('Jours')
     plt.ylabel('Argent accumulé')
